@@ -1,0 +1,40 @@
+---
+- hosts: 'zoo_hosts'
+  vars:
+    zk:
+      version: 3.5.3-beta
+      mirror: http://www-eu.apache.org/dist/zookeeper
+      dataDir: /usr/lib/zookeeper
+      installDir: "/opt"
+
+  tasks:
+  # download
+  - name: Zookeeper | Setting internal name variable
+    set_fact: zk_name="zookeeper-{{zk.version}}"
+  - name: Zookeeper | Setting internal dir variable
+    set_fact: zk_dir="{{zk.installDir}}/{{zk_name}}"
+  - name: Zookeeper | Ensure archive is loaded
+    get_url:
+      url: "{{zk.mirror}}/{{zk_name}}/{{zk_name}}.tar.gz"
+      dest: "/tmp"
+  - name: ZooKeeper | Ensure archive is extracted
+    command: tar xzf /tmp/{{zk_name}}.tar.gz chdir="{{zk.installDir}}"
+
+  # Stop Web server 
+  - name: ZooKeeper | Stop Apache2  web server
+    shell: "/etc/init.d/apache2 stop"
+
+  # configuration and start of Zookeeper
+  - name: ZooKeeper | Ensure zoo.conf is present
+    template:
+      src: "zoo.cfg"
+      dest: "{{zk_dir}}/conf"
+  - name: ZooKeeper | Ensures data dir {{zk.dataDir}} exists
+    file:
+      path: "{{zk.dataDir}}"
+      state: directory
+  - name: ZooKeeper | Ensure myid is set to {{zk_cluster_info}} in {{zk.dataDir}}/myid
+      shell: "echo {{item}} > {{zk.dataDir}}/myid"
+      with_items: groups['zoo_hosts']
+  - name: ZooKeeper | Ensure zookeeper is started
+    shell: "{{zk_dir}}/bin/zkServer.sh restart"

@@ -1,0 +1,6 @@
+# hosts : test env
+
+[zoo_hosts]
+zoo-test1
+zoo-test2
+zoo-test3
